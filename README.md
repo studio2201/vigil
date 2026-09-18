@@ -1,7 +1,7 @@
 # Vigil
 
 [![CI](https://github.com/studio2201/vigil/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/studio2201/vigil/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/badge/version-v0.2.4-blue.svg)](https://github.com/studio2201/vigil/releases)
+[![Release](https://img.shields.io/badge/version-v0.2.5-blue.svg)](https://github.com/studio2201/vigil/releases)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![Pure std::](https://img.shields.io/badge/pure-std%3A%3A-success.svg)](https://studio2201.com)
 [![Reproducible](https://img.shields.io/badge/reproducible-OK-brightgreen.svg)](tools/dev/repro.sh)
@@ -15,6 +15,22 @@
 
 **Supply-chain dormancy scanner.** Reads your project's manifest and scores each dependency by how long it has been since the upstream moved. Emits `SUPPLY-CHAIN.md` and a `vigil.svg` badge.
 
+## Why This Matters & Authoritative Research
+
+### 1. The Abandoned Dependency Vector
+Modern applications depend on hundreds of nested third-party packages. When an upstream dependency quietly goes dormant, it becomes an unmonitored attack surface. Vulnerabilities remain unpatched, expired maintainer domains are seized, and malicious actors take over abandoned packages through social engineering or package maintainer abandonment (e.g. `event-stream`, `colors.js`, and XZ Utils CVE-2024-3094).
+- **[CISA Open Source Software Security Roadmap](https://www.cisa.gov/resources-tools/resources/open-source-software-security-roadmap)**: Federal cybersecurity roadmap prioritizing discovery and remediation of unmaintained, single-maintainer dependencies across critical infrastructure.
+- **[Harvard / Linux Foundation Census III of Open Source](https://www.linuxfoundation.org/research/census-iii-open-source-software)**: Research revealing that over 80% of production codebases are comprised of open-source dependencies, with systemic fragility concentrated in dormant libraries.
+- **[OpenSSF Scorecard Project](https://securityscorecards.dev/)**: Identifies dependency maintenance latency and commit frequency as primary security risk indicators.
+
+## How It Works Under the Hood
+
+1. **Pure `std::` Multi-Manifest Parser (`src/manifest.rs`)**: Automatically detects and extracts dependencies from `Cargo.lock`, `Cargo.toml`, `package.json`, `requirements.txt`, and `go.mod` without external parsing crates.
+2. **Activity & Latency Probe (`src/probe.rs`)**: Evaluates upstream commit velocity and days since last release against dormancy heuristics.
+3. **Composite Risk Scoring (`src/score.rs`)**: Computes weighted risk (0.0 to 100.0) across Low, Medium, High, and Critical thresholds.
+4. **Automated CI Policy Gate (`src/policy.rs`)**: Halts pull requests (`vigil policy check --max-dormancy <DAYS>`) when abandoned dependencies exceed compliance thresholds.
+5. **Native SVG Badge Generator (`src/report.rs`)**: Emits raw SVG XML health badges directly on disk via `vigil badge -o vigil.svg`.
+
 ## Quick Start
 
 ```bash
@@ -23,6 +39,12 @@ curl -fsSL https://studio2201.com/install.sh | sh -s vigil
 
 # Scan dependencies in current directory
 vigil scan
+
+# Enforce dormancy threshold policy (fails if dep > 180 days dormant)
+vigil policy check --max-dormancy 180
+
+# Generate native SVG badge for README
+vigil badge -o vigil.svg
 
 # Run system diagnostics
 vigil doctor
@@ -40,16 +62,10 @@ Use Vigil in your GitHub Actions workflows to audit dependencies on pull request
     format: 'markdown'
 ```
 
-## What it does
-
-1. Detect package manager from `package.json` / `Cargo.lock` / `pyproject.toml` / `go.mod` / `pom.xml` / `composer.json` / `pubspec.yaml` / `Package.swift`.
-2. Look up each dependency's last-commit timestamp and rank it against a dormancy heuristic.
-3. Emit `SUPPLY-CHAIN.md` ranking deps by their dormancy index.
-4. Emit `vigil.svg` — a badge you can drop in your README.
-
 ## CLI Commands
 
 - `vigil scan [path]` — Scan dependency manifests
+- `vigil policy check [path] --max-dormancy <N>` — Gate CI on dormancy limits
 - `vigil badge [path] -o vigil.svg` — Generate SVG health badge
 - `vigil doctor` — Diagnose environment, XDG directories, PATH, and toolchain
 - `vigil update` / `vigil upgrade` — Check for updates and self-upgrade
@@ -67,12 +83,6 @@ Embed Vigil's real-time dormancy badge directly in your project README:
 <!-- Shields.io Dormancy Score -->
 [![Dormancy Index](https://img.shields.io/badge/dormancy-healthy-2f6f5e.svg)](https://studio2201.com/vigil)
 ```
-
-## Why
-
-- One input, one data source, one output. The viral unit is the smallest.
-- Same procurement story as Sigstore / Socket / Snyk — Vigil owns the "supply-chain dormancy" slice they don't.
-- Pure Rust, `std::` only. Zero crates.io dependencies. Strictly <= 256 LOC per source file.
 
 ## License
 

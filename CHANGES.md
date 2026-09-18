@@ -6,6 +6,16 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.2.5] — 2026-09-18
+
+### Added
+- Expanded documentation in README with authoritative problem descriptions and citations:
+  - CISA Open Source Software Security Roadmap prioritizing unmaintained dependencies.
+  - Harvard / Linux Foundation Census III research on open-source supply chain fragility.
+  - OpenSSF Scorecards evaluation of dependency maintenance latency and risks.
+- Added comprehensive "How It Works Under the Hood" architectural breakdown.
+- Upgraded release metadata and diagnostic baseline.
+
 ## [0.2.4] — 2026-09-18
 
 ### Added
