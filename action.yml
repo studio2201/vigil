@@ -1,0 +1,33 @@
+name: 'Vigil Supply-Chain Dormancy Scanner'
+description: 'Scores dependency dormancy and emits SUPPLY-CHAIN.md'
+author: 'studio2201'
+branding:
+  icon: 'eye'
+  color: 'yellow'
+
+inputs:
+  path:
+    description: 'Manifest or project directory to scan'
+    required: false
+    default: '.'
+  format:
+    description: 'Output format (text, json, markdown)'
+    required: false
+    default: 'markdown'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Set up Rust
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Build vigil
+      shell: bash
+      run: |
+        cargo build --release --manifest-path "${{ github.action_path }}/Cargo.toml"
+        echo "${{ github.action_path }}/target/release" >> $GITHUB_PATH
+
+    - name: Run Vigil Scan
+      shell: bash
+      run: |
+        vigil scan "${{ inputs.path }}" --format "${{ inputs.format }}"

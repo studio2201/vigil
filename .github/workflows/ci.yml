@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  test:
+    name: Build, Test & Verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cargo Check
+        run: cargo check --all-targets
+
+      - name: Run Tests
+        run: cargo test --all-targets
+
+      - name: Run Performance Benchmarks
+        run: cargo test --release perf_vigil_scan_within_budget -- --nocapture
+
+      - name: Verify Reproducible Build
+        run: bash tools/dev/repro.sh
+
+      - name: Verify System Doctor
+        run: cargo run -- doctor -f json
+
+      - name: Verify <= 256 LOC Limit
+        run: |
+          find src tests tools -type f \( -name "*.rs" -o -name "*.sh" \) | while read -r file; do
+            lines=$(wc -l < "$file")
+            if [ "$lines" -gt 256 ]; then
+              echo "Error: $file exceeds 256 lines ($lines lines)"
+              exit 1
+            fi
+          done
