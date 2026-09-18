@@ -6,6 +6,13 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.2.4] — 2026-09-18
+
+### Added
+- Tool-specific badges on README: Dormancy Index, Supply-Chain Health, Manifest Support, and Policy Gate.
+- Detailed README section on embedding native `vigil.svg` and shields.io dormancy badges.
+- Upgraded release metadata and diagnostic baseline.
+
 ## [0.2.0] — 2026-09-18
 
 ### Added
