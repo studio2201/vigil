@@ -1,146 +1,17 @@
 //! main.rs — Vigil CLI entry point.
-//! Standard CLI flags: -h/--help, -V/--version, --format, -o/--output, -q/--quiet, -v/--verbose.
+//! Standard CLI flags: -h/--help, -V/--version, -f/--format, -o/--output, -q/--quiet, -v/--verbose.
 
+mod cli;
+mod doctor;
+mod update;
+mod xdg;
+
+use cli::{parse_args, print_help, CliConfig, CliError, OutputFormat, Subcommand, VERSION};
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process;
 use vigil::{manifest, policy, report, score, Policy};
-
-const VERSION: &str = "0.2.0";
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum OutputFormat {
-    Text,
-    Json,
-    Markdown,
-}
-
-#[derive(Debug)]
-struct CliConfig {
-    subcommand: String,
-    target_path: PathBuf,
-    format: OutputFormat,
-    output_file: Option<PathBuf>,
-    quiet: bool,
-    verbose: bool,
-    max_dormancy: u32,
-}
-
-impl Default for CliConfig {
-    fn default() -> Self {
-        CliConfig {
-            subcommand: "scan".to_string(),
-            target_path: PathBuf::from("."),
-            format: OutputFormat::Text,
-            output_file: None,
-            quiet: false,
-            verbose: false,
-            max_dormancy: 365,
-        }
-    }
-}
-
-fn print_help() {
-    println!(
-        "vigil {} — Supply-chain dormancy scanner\n\
-        \n\
-        USAGE:\n\
-          vigil [SUBCOMMAND] [OPTIONS] [PATH]\n\
-        \n\
-        SUBCOMMANDS:\n\
-          scan             Scan manifest and emit dormancy report (default)\n\
-          policy check     Assert supply-chain policy compliance\n\
-          badge            Generate SVG health badge\n\
-        \n\
-        OPTIONS:\n\
-          -h, --help              Print help information\n\
-          -V, --version           Print version information\n\
-          --format <fmt>          Output format: text, json, markdown [default: text]\n\
-          -o, --output <file>     Write report to file instead of stdout\n\
-          -q, --quiet             Quiet mode; only emit errors and status codes\n\
-          -v, --verbose           Verbose diagnostic logging\n\
-          --max-dormancy <days>   Max allowable dependency dormancy [default: 365]\n\
-        \n\
-        EXAMPLES:\n\
-          vigil scan\n\
-          vigil scan --format json -o supply-chain.json\n\
-          vigil policy check --max-dormancy 180\n",
-        VERSION
-    );
-}
-
-fn parse_args(args: &[String]) -> Result<Option<CliConfig>, String> {
-    let mut config = CliConfig::default();
-    let mut i = 1;
-    let mut sub_set = false;
-
-    while i < args.len() {
-        match args[i].as_str() {
-            "-h" | "--help" => {
-                print_help();
-                return Ok(None);
-            }
-            "-V" | "--version" => {
-                println!("vigil {}", VERSION);
-                return Ok(None);
-            }
-            "-q" | "--quiet" => config.quiet = true,
-            "-v" | "--verbose" => config.verbose = true,
-            "--format" => {
-                i += 1;
-                if i >= args.len() {
-                    return Err("Missing argument for --format".to_string());
-                }
-                config.format = match args[i].to_lowercase().as_str() {
-                    "json" => OutputFormat::Json,
-                    "markdown" | "md" => OutputFormat::Markdown,
-                    "text" => OutputFormat::Text,
-                    other => return Err(format!("Unknown format: {}", other)),
-                };
-            }
-            "-o" | "--output" => {
-                i += 1;
-                if i >= args.len() {
-                    return Err("Missing argument for -o/--output".to_string());
-                }
-                config.output_file = Some(PathBuf::from(&args[i]));
-            }
-            "--max-dormancy" => {
-                i += 1;
-                if i >= args.len() {
-                    return Err("Missing argument for --max-dormancy".to_string());
-                }
-                config.max_dormancy = args[i].parse::<u32>().map_err(|_| "Invalid days")?;
-            }
-            "policy" => {
-                if i + 1 < args.len() && args[i + 1] == "check" {
-                    i += 1;
-                    config.subcommand = "policy_check".to_string();
-                    sub_set = true;
-                }
-            }
-            "scan" => {
-                config.subcommand = "scan".to_string();
-                sub_set = true;
-            }
-            "badge" => {
-                config.subcommand = "badge".to_string();
-                sub_set = true;
-            }
-            arg if !arg.starts_with('-') => {
-                if !sub_set && (arg == "check") {
-                    config.subcommand = "policy_check".to_string();
-                } else {
-                    config.target_path = PathBuf::from(arg);
-                }
-            }
-            other => return Err(format!("Unknown option: {}", other)),
-        }
-        i += 1;
-    }
-    Ok(Some(config))
-}
 
 fn locate_manifest(base: &Path) -> Result<PathBuf, String> {
     if base.is_file() {
@@ -171,13 +42,7 @@ fn write_output(content: &str, target: Option<&PathBuf>) -> Result<(), std::io::
     }
 }
 
-fn run() -> Result<i32, String> {
-    let args: Vec<String> = env::args().collect();
-    let config = match parse_args(&args)? {
-        Some(c) => c,
-        None => return Ok(0),
-    };
-
+fn run_scan(config: &CliConfig) -> Result<i32, CliError> {
     let manifest_path = locate_manifest(&config.target_path)?;
     if config.verbose {
         eprintln!("vigil: discovered manifest at {}", manifest_path.display());
@@ -188,14 +53,13 @@ fn run() -> Result<i32, String> {
     let score_report = score::compute(&manifest)
         .map_err(|e| format!("Scoring failed: {}", e))?;
 
-    match config.subcommand.as_str() {
-        "badge" => {
+    match config.subcommand {
+        Subcommand::Badge => {
             let svg = report::emit_badge_svg(score_report.average_score);
-            write_output(&svg, config.output_file.as_ref())
-                .map_err(|e| format!("I/O write error: {}", e))?;
+            write_output(&svg, config.output_file.as_ref())?;
             Ok(0)
         }
-        "policy_check" => {
+        Subcommand::PolicyCheck => {
             let mut pol = Policy::default();
             pol.max_dormancy_days = config.max_dormancy;
             let verdict = policy::evaluate(&score_report, &pol);
@@ -229,19 +93,41 @@ fn run() -> Result<i32, String> {
                     )
                 }
             };
-            write_output(&formatted, config.output_file.as_ref())
-                .map_err(|e| format!("I/O write error: {}", e))?;
+            write_output(&formatted, config.output_file.as_ref())?;
             Ok(if score_report.critical_count > 0 { 1 } else { 0 })
         }
+    }
+}
+
+fn run() -> Result<i32, CliError> {
+    let args: Vec<String> = env::args().collect();
+    let config = parse_args(&args)?;
+
+    match config.subcommand {
+        Subcommand::Help => {
+            print_help();
+            Ok(0)
+        }
+        Subcommand::Version => {
+            println!("vigil {}", VERSION);
+            Ok(0)
+        }
+        Subcommand::Doctor => Ok(doctor::run_doctor("vigil", VERSION, config.format)),
+        Subcommand::Update => update::run_update("vigil", VERSION).map_err(CliError::Runtime),
+        Subcommand::Scan | Subcommand::PolicyCheck | Subcommand::Badge => run_scan(&config),
     }
 }
 
 fn main() {
     match run() {
         Ok(code) => process::exit(code),
-        Err(err) => {
+        Err(CliError::Parse(err)) => {
             eprintln!("error: {}", err);
             process::exit(2);
+        }
+        Err(CliError::Runtime(err)) => {
+            eprintln!("error: {}", err);
+            process::exit(1);
         }
     }
 }
