@@ -1,10 +1,10 @@
-//! tools/perf/bench.rs — §18 bench harness for vigil.
-//!
-//! Lives as a `#[test]` in tests/integration.rs via `include!` so it is
-//! exercised by `cargo test --release perf_vigil_scan_within_budget`.
-//! Honors §18: std::time only, median-of-5, line-oriented output.
-//!
-//! Budget: vigil scan on 10k deps (synthetic) ≤ 800 ms median ±25%.
+// tools/perf/bench.rs — §18 bench harness for vigil.
+//
+// Lives as a `#[test]` in tests/integration.rs via `include!` so it is
+// exercised by `cargo test --release perf_vigil_scan_within_budget`.
+// Honors §18: std::time only, median-of-5, line-oriented output.
+//
+// Budget: vigil scan on 10k deps (synthetic) ≤ 800 ms median ±25%.
 
 use std::time::Instant;
 
@@ -42,5 +42,23 @@ fn perf_vigil_scan_within_budget() {
 }
 
 // Fixture builders — synthetic, committed (per §18-C5).
-fn synth_manifest_with_n_deps(_n: usize) -> vigil::Manifest { unimplemented!() }
-fn policy() -> vigil::Policy { unimplemented!() }
+fn synth_manifest_with_n_deps(n: usize) -> vigil::Manifest {
+    let mut dependencies = Vec::with_capacity(n);
+    for i in 0..n {
+        dependencies.push(vigil::Dependency {
+            name: format!("synth-dep-{}", i),
+            version: "1.0.0".to_string(),
+            is_dev: i % 4 == 0,
+            days_inactive: Some((i % 500) as u32),
+        });
+    }
+    vigil::Manifest {
+        kind: vigil::ManifestKind::PackageJson,
+        path: "synthetic-package.json".to_string(),
+        dependencies,
+    }
+}
+
+fn policy() -> vigil::Policy {
+    vigil::Policy::default()
+}
