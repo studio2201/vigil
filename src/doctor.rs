@@ -118,7 +118,7 @@ fn check_path() -> DoctorCheck {
     }
 }
 
-pub fn run_doctor(app: &str, version: &str, fmt: OutputFormat) -> i32 {
+pub fn run_doctor(app: &str, version: &str, fmt: OutputFormat) -> (i32, String) {
     let checks = vec![
         check_binary(),
         check_dir("config_directory", &xdg::config_dir(app)),
@@ -130,6 +130,7 @@ pub fn run_doctor(app: &str, version: &str, fmt: OutputFormat) -> i32 {
     ];
     let healthy = !checks.iter().any(|c| c.status == "error");
 
+    let mut out = String::new();
     if fmt == OutputFormat::Json {
         let mut j = format!("{{\"app\":\"{}\",\"version\":\"{}\",\"healthy\":{},\"checks\":[",
             app, version, healthy);
@@ -145,23 +146,25 @@ pub fn run_doctor(app: &str, version: &str, fmt: OutputFormat) -> i32 {
             ));
         }
         j.push_str("]}\n");
-        print!("{}", j);
+        out = j;
     } else {
-        println!("{} doctor — System & Environment Diagnostics", app);
+        use std::fmt::Write;
+        let _ = writeln!(out, "{} doctor — System & Environment Diagnostics", app);
         for c in &checks {
             let symbol = match c.status.as_str() {
                 "ok" => "[✓]",
                 "warn" => "[!]",
                 _ => "[✗]",
             };
-            println!("{} {}: {}", symbol, c.name, c.detail);
+            let _ = writeln!(out, "{} {}: {}", symbol, c.name, c.detail);
             if let Some(ref r) = c.remediation {
-                println!("    Remediation: {}", r);
+                let _ = writeln!(out, "    Remediation: {}", r);
             }
         }
         let passed = checks.iter().filter(|c| c.status == "ok").count();
-        println!("\nStatus: {} ({}/{} checks ok)",
+        let _ = writeln!(out, "\nStatus: {} ({}/{} checks ok)",
             if healthy { "HEALTHY" } else { "UNHEALTHY" }, passed, checks.len());
     }
-    if healthy { 0 } else { 1 }
+    let code = if healthy { 0 } else { 1 };
+    (code, out)
 }
