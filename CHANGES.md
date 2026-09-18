@@ -9,6 +9,14 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 ### Added
 - (placeholder — next iteration's changes land here)
 
+## [0.1.2] — 2026-09-17
+
+### Changed
+- `README.md` rewritten to drop openOODA substrate references
+  (seance/opm/bb/ML-DSA-65 mentions removed where they described the
+  implementation path; dormancy-via-last-commit heuristic kept as the
+  *behavior*).
+
 ## [0.1.1] — 2026-09-17
 
 ### Added
