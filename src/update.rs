@@ -1,8 +1,22 @@
 //! update.rs — Self-update mechanism for vigil.
+use crate::cli::OutputFormat;
 use crate::xdg;
 use std::env;
 use std::fs;
 use std::process::Command;
+
+fn parse_semver(v: &str) -> (u32, u32, u32) {
+    let mut it = v.trim_start_matches('v').split('.');
+    (
+        it.next().and_then(|s| s.parse().ok()).unwrap_or(0),
+        it.next().and_then(|s| s.parse().ok()).unwrap_or(0),
+        it.next().and_then(|s| s.parse().ok()).unwrap_or(0),
+    )
+}
+
+fn is_newer(latest: &str, current: &str) -> bool {
+    parse_semver(latest) > parse_semver(current)
+}
 
 fn query_latest_version(app: &str) -> Result<String, String> {
     let gh_url = format!("https://github.com/studio2201/{}/releases/latest", app);
@@ -46,16 +60,40 @@ fn detect_target() -> Option<&'static str> {
     }
 }
 
-pub fn run_update(app: &str, current_ver: &str) -> Result<i32, String> {
-    println!("{}: checking for updates...", app);
-    let latest = query_latest_version(app)?;
+pub fn run_update(
+    app: &str,
+    current_ver: &str,
+    fmt: OutputFormat,
+) -> Result<(i32, String), String> {
+    let latest = match query_latest_version(app) {
+        Ok(v) => v,
+        Err(e) => {
+            if fmt == OutputFormat::Json {
+                return Ok((
+                    1,
+                    format!(
+                        "{{\"app\":\"{}\",\"current\":\"{}\",\"error\":\"{}\"}}\n",
+                        app, current_ver, e
+                    ),
+                ));
+            } else {
+                return Err(e);
+            }
+        }
+    };
 
-    if latest == current_ver {
-        println!("{} is already up to date ({})", app, current_ver);
-        return Ok(0);
+    if !is_newer(&latest, current_ver) {
+        let out = if fmt == OutputFormat::Json {
+            format!(
+                "{{\"app\":\"{}\",\"current\":\"{}\",\"latest\":\"{}\",\"status\":\"up_to_date\"}}\n",
+                app, current_ver, latest
+            )
+        } else {
+            format!("{} is already up to date ({})\n", app, current_ver)
+        };
+        return Ok((0, out));
     }
 
-    println!("{}: upgrading from {} to {}...", app, current_ver, latest);
     let dest_dir = xdg::bin_dir();
     fs::create_dir_all(&dest_dir)
         .map_err(|e| format!("Failed to create destination dir: {}", e))?;
@@ -75,7 +113,12 @@ pub fn run_update(app: &str, current_ver: &str) -> Result<i32, String> {
         if let Ok(st) = dl {
             if st.success() && tmp_tar.is_file() {
                 let untar = Command::new("tar")
-                    .args(["-xzf", tmp_tar.to_str().unwrap_or(""), "-C", dest_dir.to_str().unwrap_or("")])
+                    .args([
+                        "-xzf",
+                        tmp_tar.to_str().unwrap_or(""),
+                        "-C",
+                        dest_dir.to_str().unwrap_or(""),
+                    ])
                     .status();
                 let _ = fs::remove_file(&tmp_tar);
                 if let Ok(ust) = untar {
@@ -88,8 +131,10 @@ pub fn run_update(app: &str, current_ver: &str) -> Result<i32, String> {
     }
 
     if !upgraded {
-        // Fallback: invoke installer via shell
-        let script = format!("curl -fsSL https://studio2201.com/install.sh | sh -s -- {}", app);
+        let script = format!(
+            "curl -fsSL https://studio2201.com/install.sh | sh -s -- {}",
+            app
+        );
         let inst = Command::new("sh").args(["-c", &script]).status();
         if let Ok(st) = inst {
             if st.success() {
@@ -105,9 +150,19 @@ pub fn run_update(app: &str, current_ver: &str) -> Result<i32, String> {
     }
 
     if upgraded || dest_bin.exists() {
-        println!("Successfully upgraded {} to {} in {}", app, latest, dest_bin.display());
-        Ok(0)
+        let out = if fmt == OutputFormat::Json {
+            format!(
+                "{{\"app\":\"{}\",\"current\":\"{}\",\"latest\":\"{}\",\"status\":\"upgraded\",\"path\":\"{}\"}}\n",
+                app, current_ver, latest, dest_bin.display()
+            )
+        } else {
+            format!(
+                "Successfully upgraded {} to {} in {}\n",
+                app, latest, dest_bin.display()
+            )
+        };
+        Ok((0, out))
     } else {
-        Err(format!("Failed to upgrade {}: download or build error", app))
+        Err(format!("Failed to upgrade {}: download error", app))
     }
 }
