@@ -1,0 +1,6 @@
+target/
+scored.json
+report.md
+BONEYARD.md
+*.bk
+.DS_Store
