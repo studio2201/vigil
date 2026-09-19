@@ -1,17 +1,8 @@
 # Vigil
 
-[![CI](https://github.com/studio2201/vigil/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/studio2201/vigil/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/badge/version-v0.2.6-blue.svg)](https://github.com/studio2201/vigil/releases)
+[![studio2201 Suite](https://img.shields.io/badge/studio2201-5%2F5%20Verified-2f6f5e?logo=shield)](https://studio2201.com/agents#badges)
+[![Release](https://img.shields.io/badge/version-v0.2.7-blue.svg)](https://github.com/studio2201/vigil/releases)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
-[![Pure std::](https://img.shields.io/badge/pure-std%3A%3A-success.svg)](https://studio2201.com)
-[![Reproducible](https://img.shields.io/badge/reproducible-OK-brightgreen.svg)](tools/dev/repro.sh)
-[![Max LOC](https://img.shields.io/badge/max%20LOC-%E2%89%A4256-brightgreen.svg)](https://studio2201.com)
-
-[![Vigil Supply-Chain](vigil.svg)](https://studio2201.com/vigil)
-[![Dormancy Index](https://img.shields.io/badge/dormancy%20index-0%2F100-brightgreen.svg)](https://studio2201.com/vigil)
-[![Supply-Chain Health](https://img.shields.io/badge/supply--chain-healthy-2f6f5e.svg)](https://studio2201.com/vigil)
-[![Manifests](https://img.shields.io/badge/manifests-Cargo%20%7C%20npm%20%7C%20pip%20%7C%20go-informational.svg)](https://studio2201.com/vigil)
-[![Policy Gate](https://img.shields.io/badge/policy%20gate-PASSED-brightgreen.svg)](https://studio2201.com/vigil)
 
 **Supply-chain dormancy scanner.** Reads your project's manifest and scores each dependency by how long it has been since the upstream moved. Emits `SUPPLY-CHAIN.md` and a `vigil.svg` badge.
 

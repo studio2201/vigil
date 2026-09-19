@@ -6,6 +6,12 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.2.7] — 2026-09-19
+
+### Changed
+- Updated README header to unified Option 1 Single Suite Badge.
+- Bumped version to 0.2.7.
+
 ## [0.2.6] — 2026-09-19
 
 ### Added
