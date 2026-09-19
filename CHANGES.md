@@ -4,6 +4,11 @@ All notable changes to this project are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/) 1.1.0.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.2.10] — 2026-09-19
+
+### Added
+- Multi-platform static binary release packaging and two-stage publish workflow.
+
 ## [0.2.9] — 2026-09-19
 
 ### Removed

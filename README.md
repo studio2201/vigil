@@ -1,7 +1,7 @@
 # Vigil
 
 [![studio2201 Suite](https://img.shields.io/badge/studio2201-5%2F5%20Verified-2f6f5e?logo=shield)](https://studio2201.com/agents#badges)
-[![Release](https://img.shields.io/badge/version-v0.2.9-blue.svg)](https://github.com/studio2201/vigil/releases)
+[![Release](https://img.shields.io/badge/version-v0.2.10-blue.svg)](https://github.com/studio2201/vigil/releases)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
 **Supply-chain dormancy scanner.** Reads your project's manifest and scores each dependency by how long it has been since the upstream moved. Emits `SUPPLY-CHAIN.md` and a `vigil.svg` badge.
