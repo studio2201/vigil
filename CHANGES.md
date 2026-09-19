@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/) 1.1.0.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.2.11] — 2026-09-19
+
+### Fixed
+- Exclude root crate and path dependencies lacking `source` in Cargo.lock parsing.
+- Embedded canonical AI agent prompt and hardened GitHub Actions CI workflow in docs.
+
 ## [0.2.10] — 2026-09-19
 
 ### Added

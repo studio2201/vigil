@@ -115,21 +115,34 @@ fn parse_package_json(content: &str) -> Result<Vec<Dependency>, ManifestError> {
 
 fn parse_cargo_lock(content: &str) -> Result<Vec<Dependency>, ManifestError> {
     let mut deps = Vec::new();
-    let (mut cur_name, mut cur_ver) = (None, None);
+    let (mut cur_name, mut cur_ver, mut has_source) = (None, None, false);
     for line in content.lines() {
         let t = line.trim();
         if t == "[[package]]" {
-            if let (Some(n), Some(v)) = (cur_name.take(), cur_ver.take()) {
-                deps.push(Dependency { name: n, version: v, is_dev: false, days_inactive: None });
+            if has_source {
+                if let (Some(n), Some(v)) = (cur_name, cur_ver) {
+                    deps.push(Dependency {
+                        name: n, version: v, is_dev: false, days_inactive: None,
+                    });
+                }
             }
+            cur_name = None;
+            cur_ver = None;
+            has_source = false;
         } else if let Some(n) = t.strip_prefix("name = ") {
             cur_name = Some(n.trim_matches('"').to_string());
         } else if let Some(v) = t.strip_prefix("version = ") {
             cur_ver = Some(v.trim_matches('"').to_string());
+        } else if t.starts_with("source = ") {
+            has_source = true;
         }
     }
-    if let (Some(n), Some(v)) = (cur_name, cur_ver) {
-        deps.push(Dependency { name: n, version: v, is_dev: false, days_inactive: None });
+    if has_source {
+        if let (Some(n), Some(v)) = (cur_name, cur_ver) {
+            deps.push(Dependency {
+                name: n, version: v, is_dev: false, days_inactive: None,
+            });
+        }
     }
     Ok(deps)
 }
@@ -188,4 +201,54 @@ fn parse_go_mod(content: &str) -> Result<Vec<Dependency>, ManifestError> {
         }
     }
     Ok(deps)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_cargo_lock_root_exclusion() {
+        let lock = r#"
+version = 4
+
+[[package]]
+name = "studio2201"
+version = "0.1.7"
+
+[[package]]
+name = "serde"
+version = "1.0.197"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+"#;
+        let deps = parse_cargo_lock(lock).unwrap();
+        assert_eq!(deps.len(), 1);
+        assert_eq!(deps[0].name, "serde");
+        assert_eq!(deps[0].version, "1.0.197");
+    }
+
+    #[test]
+    fn test_cargo_lock_pure_root_empty() {
+        let lock = r#"
+[[package]]
+name = "studio2201"
+version = "0.1.7"
+"#;
+        let deps = parse_cargo_lock(lock).unwrap();
+        assert!(deps.is_empty());
+    }
+
+    #[test]
+    fn test_cargo_lock_external_included() {
+        let lock = r#"
+[[package]]
+name = "tokio"
+version = "1.38.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+"#;
+        let deps = parse_cargo_lock(lock).unwrap();
+        assert_eq!(deps.len(), 1);
+        assert_eq!(deps[0].name, "tokio");
+        assert_eq!(deps[0].version, "1.38.0");
+    }
 }

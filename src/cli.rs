@@ -2,7 +2,7 @@
 use std::fmt;
 use std::path::PathBuf;
 
-pub const VERSION: &str = "0.2.10";
+pub const VERSION: &str = "0.2.11";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OutputFormat {
