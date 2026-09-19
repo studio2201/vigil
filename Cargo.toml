@@ -1,6 +1,6 @@
 [package]
 name = "vigil"
-version = "0.2.12"
+version = "0.2.13"
 edition = "2021"
 publish = false
 description = "Supply-chain dormancy scanner"

@@ -65,10 +65,7 @@ Add a GitHub Actions workflow to this repository at .github/workflows/vigil.yml 
 - Action: run studio2201/studio2201@v1 with tools: 'vigil' and fail-on: 'block'.
 - Artifacts: upload vigil_report.md using actions/upload-artifact@v4 with if: always().
 - Zero False Positives: @v1 provisions Vigil v0.2.11+ (excludes root crates in Cargo.lock).
-- README Badge: add dynamic Shields.io workflow status badge to top of README.md (replace <owner>/<repo>):
-  [![vigil][b-vigil]][ci-vigil]
-  [b-vigil]: https://img.shields.io/github/actions/workflow/status/<owner>/<repo>/vigil.yml?label=vigil&logo=shield
-  [ci-vigil]: https://github.com/<owner>/<repo>/actions/workflows/vigil.yml
+- README Scorecard: embed the studio2201 Centered Scorecard table at top of README.md (specs: studio2201.com/agents).
 ```
 
 ### GitHub Actions Workflow
