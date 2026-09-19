@@ -4,7 +4,10 @@ All notable changes to this project are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/) 1.1.0.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.2.8] — 2026-09-19
+
+### Added
+- Embedded Option 2 detailed governance scorecard into `README.md`.
 
 ## [0.2.7] — 2026-09-19
 
