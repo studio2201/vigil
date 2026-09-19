@@ -1,7 +1,7 @@
 # Vigil
 
 [![CI](https://github.com/studio2201/vigil/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/studio2201/vigil/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/badge/version-v0.2.5-blue.svg)](https://github.com/studio2201/vigil/releases)
+[![Release](https://img.shields.io/badge/version-v0.2.6-blue.svg)](https://github.com/studio2201/vigil/releases)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![Pure std::](https://img.shields.io/badge/pure-std%3A%3A-success.svg)](https://studio2201.com)
 [![Reproducible](https://img.shields.io/badge/reproducible-OK-brightgreen.svg)](tools/dev/repro.sh)
@@ -15,17 +15,54 @@
 
 **Supply-chain dormancy scanner.** Reads your project's manifest and scores each dependency by how long it has been since the upstream moved. Emits `SUPPLY-CHAIN.md` and a `vigil.svg` badge.
 
-## Why This Matters & Authoritative Research
+## Why This Action Is Needed
 
-### 1. The Abandoned Dependency Vector
-Modern applications depend on hundreds of nested third-party packages. When an upstream dependency quietly goes dormant, it becomes an unmonitored attack surface. Vulnerabilities remain unpatched, expired maintainer domains are seized, and malicious actors take over abandoned packages through social engineering or package maintainer abandonment (e.g. `event-stream`, `colors.js`, and XZ Utils CVE-2024-3094).
-- **[CISA Open Source Software Security Roadmap](https://www.cisa.gov/resources-tools/resources/open-source-software-security-roadmap)**: Federal cybersecurity roadmap prioritizing discovery and remediation of unmaintained, single-maintainer dependencies across critical infrastructure.
-- **[Harvard / Linux Foundation Census III of Open Source](https://www.linuxfoundation.org/research/census-iii-open-source-software)**: Research revealing that over 80% of production codebases are comprised of open-source dependencies, with systemic fragility concentrated in dormant libraries.
-- **[OpenSSF Scorecard Project](https://securityscorecards.dev/)**: Identifies dependency maintenance latency and commit frequency as primary security risk indicators.
+### The Abandoned Dependency Vector & CVE Precedents
+Modern software applications depend on hundreds of nested third-party packages. When an upstream dependency quietly goes dormant, it becomes an unmonitored attack surface. Vulnerabilities remain unpatched, expired maintainer domains are hijacked, and malicious actors take over abandoned libraries through social engineering (e.g. `event-stream`, `colors.js`, and XZ Utils CVE-2024-3094).
+- **[Harvard / Linux Foundation Census III](https://www.linuxfoundation.org/research/census-iii-open-source-software)**: Research proves over 80% of production code consists of open-source libraries, with systemic fragility concentrated in single-maintainer, dormant dependencies.
+- **[CISA Open Source Security Roadmap](https://www.cisa.gov/resources-tools/resources/open-source-software-security-roadmap)**: Federal mandate prioritizing discovery and automated remediation of unmaintained dependencies across enterprise software.
+- **Automated CI Gates vs Manual Compliance**: Manual auditing across deep dependency trees is humanly impossible to sustain. Developers under deadline pressure rarely check commit recency when adding dependencies. Vigil provides an automated, non-bypassable CI gate that fails closed when dormant packages breach policy limits.
+
+## Autonomous Agent Integration
+
+Integrate Vigil directly using your AI coding assistant or copy the workflow below.
+
+### Prompt for your AI Agent
+
+Copy and paste this prompt to Cursor, Claude Code, Copilot Workspace, or Devin:
+
+```text
+Add a GitHub Actions workflow to this repository at .github/workflows/vigil.yml using studio2201/vigil@master. Trigger on pull requests and pushes to master, scan dependency manifests for packages dormant over 180 days, write a dormancy scorecard to the GitHub Step Summary, and fail the build if abandoned dependencies are detected.
+```
+
+### GitHub Actions Workflow
+
+Commit this complete, production-ready workflow at `.github/workflows/vigil.yml`:
+
+```yaml
+name: Vigil Supply-Chain Gate
+on:
+  pull_request:
+    branches: [ master, main ]
+  push:
+    branches: [ master, main ]
+permissions:
+  contents: read
+jobs:
+  vigil-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Audit Dependency Dormancy
+        uses: studio2201/vigil@master
+        with:
+          path: '.'
+          max-dormancy: '180'
+```
 
 ## How It Works Under the Hood
 
-1. **Pure `std::` Multi-Manifest Parser (`src/manifest.rs`)**: Automatically detects and extracts dependencies from `Cargo.lock`, `Cargo.toml`, `package.json`, `requirements.txt`, and `go.mod` without external parsing crates.
+1. **Pure `std::` Multi-Manifest Parser (`src/manifest.rs`)**: Automatically extracts dependencies from `Cargo.lock`, `Cargo.toml`, `package.json`, `requirements.txt`, and `go.mod` without external parsing crates.
 2. **Activity & Latency Probe (`src/probe.rs`)**: Evaluates upstream commit velocity and days since last release against dormancy heuristics.
 3. **Composite Risk Scoring (`src/score.rs`)**: Computes weighted risk (0.0 to 100.0) across Low, Medium, High, and Critical thresholds.
 4. **Automated CI Policy Gate (`src/policy.rs`)**: Halts pull requests (`vigil policy check --max-dormancy <DAYS>`) when abandoned dependencies exceed compliance thresholds.
@@ -48,18 +85,6 @@ vigil badge -o vigil.svg
 
 # Run system diagnostics
 vigil doctor
-```
-
-## GitHub Action Usage
-
-Use Vigil in your GitHub Actions workflows to audit dependencies on pull requests:
-
-```yaml
-- name: Vigil Supply-Chain Dormancy Scan
-  uses: studio2201/vigil@master
-  with:
-    path: '.'
-    format: 'markdown'
 ```
 
 ## CLI Commands

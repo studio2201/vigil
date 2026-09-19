@@ -10,24 +10,73 @@ inputs:
     description: 'Manifest or project directory to scan'
     required: false
     default: '.'
+  max-dormancy:
+    description: 'Maximum allowable dependency dormancy in days'
+    required: false
+    default: '365'
   format:
-    description: 'Output format (text, json, markdown)'
+    description: 'Output format (markdown, text, json)'
     required: false
     default: 'markdown'
 
 runs:
   using: 'composite'
   steps:
-    - name: Set up Rust
-      uses: dtolnay/rust-toolchain@stable
-
-    - name: Build vigil
+    - name: Fast Bootstrap vigil
       shell: bash
       run: |
-        cargo build --release --manifest-path "${{ github.action_path }}/Cargo.toml"
-        echo "${{ github.action_path }}/target/release" >> $GITHUB_PATH
+        DEST="${XDG_BIN_HOME:-$HOME/.local/bin}"
+        mkdir -p "$DEST"
+        if ! command -v vigil >/dev/null 2>&1; then
+          if [ -f "${{ github.action_path }}/../install.sh" ]; then
+            sh "${{ github.action_path }}/../install.sh" --dest "$DEST" vigil
+          elif [ -f "${{ github.action_path }}/install.sh" ]; then
+            sh "${{ github.action_path }}/install.sh" --dest "$DEST" vigil
+          else
+            curl -fsSL --retry 3 https://studio2201.com/install.sh | sh -s -- --dest "$DEST" vigil
+          fi
+        fi
+        echo "$DEST" >> "$GITHUB_PATH"
 
     - name: Run Vigil Scan
       shell: bash
       run: |
-        vigil scan "${{ inputs.path }}" --format "${{ inputs.format }}"
+        export PATH="${XDG_BIN_HOME:-$HOME/.local/bin}:$PATH"
+        TARGET="${{ inputs.path }}"
+        MANIFEST="$TARGET"
+        if [ -d "$TARGET" ]; then
+          MANIFEST=$(find "$TARGET" -maxdepth 3 \( -name "Cargo.lock" -o -name "package.json" -o -name "requirements.txt" -o -name "go.mod" -o -name "Cargo.toml" \) 2>/dev/null | head -n 1)
+        fi
+
+        set +e
+        if [ -n "$MANIFEST" ] && [ -f "$MANIFEST" ]; then
+          vigil scan "$MANIFEST" --format "${{ inputs.format }}" > vigil_summary.md 2>&1
+          EC=$?
+          vigil policy check --max-dormancy "${{ inputs.max-dormancy }}" "$MANIFEST" >/dev/null 2>&1
+          PEC=$?
+          [ $PEC -ne 0 ] && EC=$PEC
+        else
+          echo "No supported dependency manifest found in $TARGET." > vigil_summary.md
+          EC=0
+        fi
+        set -e
+
+        STATUS="🟢 COMPLIANT"
+        BADGE="https://img.shields.io/badge/Vigil-COMPLIANT-brightgreen"
+        if [ $EC -ne 0 ]; then
+          STATUS="🔴 DORMANT"
+          BADGE="https://img.shields.io/badge/Vigil-DORMANT-red"
+        fi
+
+        if [ -n "$GITHUB_STEP_SUMMARY" ]; then
+          {
+            echo "## 👁️ Vigil Supply-Chain Dormancy Audit"
+            echo ""
+            echo "| Status | Max Dormancy | Badge |"
+            echo "| :---: | :---: | :---: |"
+            echo "| **${STATUS}** | \`${{ inputs.max-dormancy }} days\` | ![Vigil](${BADGE}) |"
+            echo ""
+          } >> "$GITHUB_STEP_SUMMARY"
+          cat vigil_summary.md >> "$GITHUB_STEP_SUMMARY"
+        fi
+        exit $EC

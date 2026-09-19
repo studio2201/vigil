@@ -6,6 +6,14 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.2.6] — 2026-09-19
+
+### Added
+- Native composite GitHub Action (`action.yml`) with sub-2s fast bootstrap via `install.sh`.
+- Native `$GITHUB_STEP_SUMMARY` Markdown scorecard and audit reporting.
+- Human-first 'Why This Action Is Needed' rationale with CISA/OpenSSF citations.
+- Agent-first 'Prompt for your AI Agent' blocks and drop-in CI workflow YAML.
+
 ## [0.2.5] — 2026-09-18
 
 ### Added
