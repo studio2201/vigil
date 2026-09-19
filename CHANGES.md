@@ -4,6 +4,11 @@ All notable changes to this project are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/) 1.1.0.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.2.12] — 2026-09-19
+
+### Changed
+- Standardized centered 2-column Security & Governance Scorecard table `<div align="center">` in README.
+
 ## [0.2.11] — 2026-09-19
 
 ### Fixed
