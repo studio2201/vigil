@@ -1,8 +1,11 @@
 # Vigil
 
-[![studio2201 Suite](https://img.shields.io/badge/studio2201-5%2F5%20Verified-2f6f5e?logo=shield)](https://studio2201.com/agents#badges)
+[![vigil][b-vigil]][ci-vigil]
 [![Release](https://img.shields.io/badge/version-v0.2.11-blue.svg)](https://github.com/studio2201/vigil/releases)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+
+[b-vigil]: https://img.shields.io/github/actions/workflow/status/studio2201/vigil/vigil.yml?label=vigil&logo=shield
+[ci-vigil]: https://github.com/studio2201/vigil/actions/workflows/vigil.yml
 
 **Supply-chain dormancy scanner.** Reads your project's manifest and scores each dependency
 by how long it has been since the upstream moved. Emits `SUPPLY-CHAIN.md` and a `vigil.svg` badge.
@@ -32,58 +35,45 @@ Integrate Vigil directly using your AI coding assistant or copy the workflow bel
 Copy and paste this prompt to Cursor, Claude Code, Copilot Workspace, or Devin:
 
 ```text
-Add a GitHub Actions workflow to this repository at .github/workflows/studio2201.yml using studio2201/studio2201@master.
-Trigger on pull_request and push to master/main, and workflow_dispatch.
-Configure concurrency with cancel-in-progress on pull requests.
-Set permissions to contents: read, checkout with fetch-depth: 0, run studio2201/studio2201@master with tools: 'all' and fail-on: 'block'.
-Retain audit findings using actions/upload-artifact@v4 with if: always().
-Finally, add the Option 1 Single Suite Badge or Option 2 Governance Scorecard to README.md.
+Add a GitHub Actions workflow to this repository at .github/workflows/vigil.yml using studio2201/studio2201@v1:
+- Name: vigil
+- Triggers: pull_request, push to default branch (master/main), and workflow_dispatch.
+- Concurrency: group ${{ github.workflow }}-${{ github.ref }} with cancel-in-progress on pull_request.
+- Permissions: contents: read, checkout with fetch-depth: 0.
+- Action: run studio2201/studio2201@v1 with tools: 'vigil' and fail-on: 'block'.
+- Artifacts: upload vigil_report.md using actions/upload-artifact@v4 with if: always().
+- Zero False Positives: @v1 provisions Vigil v0.2.11+ (excludes root crates in Cargo.lock).
+- README Badge: add dynamic Shields.io workflow status badge to top of README.md (replace <owner>/<repo>):
+  [![vigil][b-vigil]][ci-vigil]
+  [b-vigil]: https://img.shields.io/github/actions/workflow/status/<owner>/<repo>/vigil.yml?label=vigil&logo=shield
+  [ci-vigil]: https://github.com/<owner>/<repo>/actions/workflows/vigil.yml
 ```
 
 ### GitHub Actions Workflow
 
-Commit this complete, production-ready workflow at `.github/workflows/studio2201.yml`:
+Commit this complete, production-ready workflow at `.github/workflows/vigil.yml`:
 
 ```yaml
-name: studio2201 Security Gate
+name: vigil
 on:
-  push:
-    branches: [ master, main ]
-  pull_request:
-    branches: [ master, main ]
+  push: { branches: [ master, main ] }
+  pull_request: { branches: [ master, main ] }
   workflow_dispatch:
-
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
-
-permissions:
-  contents: read
-
+permissions: { contents: read }
 jobs:
-  security-gate:
-    name: studio2201 Security Gate
+  vigil:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Run studio2201 Security Gate
-        uses: studio2201/studio2201@master
-        with:
-          tools: 'all'
-          fail-on: 'block'
-
-      - name: Retain Audit Findings
-        uses: actions/upload-artifact@v4
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: studio2201/studio2201@v1
+        with: { tools: 'vigil', fail-on: 'block' }
+      - uses: actions/upload-artifact@v4
         if: always()
-        with:
-          name: studio2201-audit-findings
-          path: |
-            *_report.md
-          if-no-files-found: ignore
+        with: { name: vigil-report, path: vigil_report.md, if-no-files-found: ignore }
 ```
 
 ## How It Works Under the Hood
