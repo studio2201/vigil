@@ -57,15 +57,13 @@ Integrate Vigil directly using your AI coding assistant or copy the workflow bel
 Copy and paste this prompt to Cursor, Claude Code, Copilot Workspace, or Devin:
 
 ```text
-Add a GitHub Actions workflow to this repository at .github/workflows/vigil.yml using studio2201/studio2201@v1:
+Add a GitHub Actions workflow to this repository at .github/workflows/vigil.yml using studio2201/vigil@v1:
 - Name: vigil
 - Triggers: pull_request, push to default branch (master/main), and workflow_dispatch.
 - Concurrency: group ${{ github.workflow }}-${{ github.ref }} with cancel-in-progress on pull_request.
 - Permissions: contents: read, checkout with fetch-depth: 0.
-- Action: run studio2201/studio2201@v1 with tools: 'vigil' and fail-on: 'block'.
-- Artifacts: upload vigil_report.md using actions/upload-artifact@v4 with if: always().
-- Zero False Positives: @v1 provisions Vigil v0.2.11+ (excludes root crates in Cargo.lock).
-- README Scorecard: embed the studio2201 Centered Scorecard table at top of README.md (specs: studio2201.com/agents).
+- Action: run studio2201/vigil@v1.
+- Artifacts: upload vigil_summary.md using actions/upload-artifact@v4 with if: always().
 ```
 
 ### GitHub Actions Workflow
@@ -88,11 +86,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
-      - uses: studio2201/studio2201@v1
-        with: { tools: 'vigil', fail-on: 'block' }
+      - uses: studio2201/vigil@v1
       - uses: actions/upload-artifact@v4
         if: always()
-        with: { name: vigil-report, path: vigil_report.md, if-no-files-found: ignore }
+        with: { name: vigil-report, path: vigil_summary.md, if-no-files-found: ignore }
 ```
 
 ## How It Works Under the Hood
