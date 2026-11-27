@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[![Release](https://img.shields.io/badge/version-v0.2.12-blue.svg)](https://github.com/studio2201/vigil/releases)
+[![Release](https://img.shields.io/badge/version-v0.2.14-blue.svg)](https://github.com/studio2201/vigil/releases)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
 | Security Pillar | Verification Badge |
@@ -14,17 +14,17 @@
 | **Build Provenance & SLSA** | [![proven][b-proven]][u-proven] |
 | **Repository Governance** | [![boneyard][b-boneyard]][u-boneyard] |
 
-[b-studio]: https://img.shields.io/badge/secured%20by-studio2201-2f6f5e?logo=shield
+[b-studio]: https://img.shields.io/badge/secured%20by-studio2201-1b5e4a?logo=shield
 [u-home]: https://studio2201.com
-[b-snip]: https://img.shields.io/badge/snip-0%20secrets-2f6f5e?logo=shield
+[b-snip]: https://img.shields.io/badge/snip-0%20secrets-1b5e4a?logo=shield
 [u-snip]: https://studio2201.com/snip
-[b-vigil]: https://img.shields.io/badge/vigil-0%20dependencies-2f6f5e?logo=shield
+[b-vigil]: https://img.shields.io/badge/vigil-0%20dependencies-1b5e4a?logo=shield
 [u-vigil]: https://studio2201.com/vigil
-[b-aegis]: https://img.shields.io/badge/aegis-PQC%20compliant-2f6f5e?logo=shield
+[b-aegis]: https://img.shields.io/badge/aegis-PQC%20compliant-1b5e4a?logo=shield
 [u-aegis]: https://studio2201.com/aegis
-[b-proven]: https://img.shields.io/badge/proven-ML--DSA--65%20verified-2f6f5e?logo=shield
+[b-proven]: https://img.shields.io/badge/proven-HMAC--SHA256%20verified-1b5e4a?logo=shield
 [u-proven]: https://studio2201.com/proven
-[b-boneyard]: https://img.shields.io/badge/boneyard-maintained-2f6f5e?logo=shield
+[b-boneyard]: https://img.shields.io/badge/boneyard-maintained-1b5e4a?logo=shield
 [u-boneyard]: https://studio2201.com/boneyard
 
 </div>
@@ -63,7 +63,7 @@ Add a GitHub Actions workflow to this repository at .github/workflows/vigil.yml 
 - Concurrency: group ${{ github.workflow }}-${{ github.ref }} with cancel-in-progress on pull_request.
 - Permissions: contents: read, checkout with fetch-depth: 0.
 - Action: run studio2201/vigil@v1.
-- Artifacts: upload vigil_summary.md using actions/upload-artifact@v4 with if: always().
+- Artifacts: upload vigil_summary.md using actions/upload-artifact@v6 with if: always().
 ```
 
 ### GitHub Actions Workflow
