@@ -22,7 +22,7 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    - name: Bootstrap vigil (pinned v0.2.11 + SHA-256)
+    - name: Bootstrap vigil (pinned v0.2.14 + SHA-256)
       shell: bash
       run: |
         DEST="${XDG_BIN_HOME:-$HOME/.local/bin}"
@@ -38,7 +38,7 @@ runs:
             *) echo "::error::Unsupported platform $(uname -s)-$(uname -m)"; exit 1 ;;
           esac
           ASSET="vigil-${TARGET}.tar.gz"
-          URL="https://github.com/studio2201/vigil/releases/download/v0.2.11/${ASSET}"
+          URL="https://github.com/studio2201/vigil/releases/download/v0.2.14/${ASSET}"
           curl -fsSL --retry 3 "$URL" -o "$TMP/$ASSET"
           curl -fsSL --retry 3 "${URL}.sha256" -o "$TMP/${ASSET}.sha256"
           EXPECTED=$(awk '{print $1}' "$TMP/${ASSET}.sha256")
