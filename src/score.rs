@@ -2,7 +2,7 @@
 //! Scores dormancy from 0.0 (active) to 100.0 (abandoned / high risk).
 
 use crate::manifest::Manifest;
-use crate::probe::{probe_dependency, ProbeResult};
+use crate::probe::{probe_for_kind, ProbeResult};
 use std::fmt;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -99,7 +99,7 @@ pub fn compute(manifest: &Manifest) -> Result<ScoreReport, ScoreError> {
     let mut low_count = 0;
 
     for dep in &manifest.dependencies {
-        let probe = probe_dependency(dep);
+        let probe = probe_for_kind(dep, &manifest.kind);
         let (score, level) = calculate_dep_score(&probe, dep.is_dev);
 
         match level {
