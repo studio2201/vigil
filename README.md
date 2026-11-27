@@ -111,8 +111,8 @@ jobs:
 ## Quick Start
 
 ```bash
-# Install via studio2201 installer
-curl -fsSL https://studio2201.com/install.sh | sh -s vigil
+# Install from source (or download release tarballs from GitHub Releases)
+cargo install --git https://github.com/studio2201/vigil
 
 # Scan dependencies in current directory
 vigil scan

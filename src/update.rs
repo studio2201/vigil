@@ -37,17 +37,42 @@ fn query_latest_version(app: &str) -> Result<String, String> {
             }
         }
     }
-    // Fallback to studio2201.com/VERSION
-    if let Ok(out) = Command::new("curl")
-        .args(["-fsSL", "https://studio2201.com/VERSION"])
-        .output()
-    {
-        let ver = String::from_utf8_lossy(&out.stdout).trim().to_string();
-        if !ver.is_empty() {
-            return Ok(ver);
-        }
-    }
     Err("Failed to query latest release version from remote".into())
+}
+
+fn verify_sha256(archive: &std::path::Path, sha_url: &str) -> Result<(), String> {
+    let sha_file = archive.with_extension("sha256");
+    let st = Command::new("curl")
+        .args(["-fsSL", sha_url, "-o", sha_file.to_str().unwrap_or("")])
+        .status()
+        .map_err(|e| format!("Failed to fetch SHA-256 checksum: {}", e))?;
+    if !st.success() || !sha_file.is_file() {
+        let _ = fs::remove_file(&sha_file);
+        return Err("Missing release .sha256 checksum; aborting fail-closed".into());
+    }
+    let content = fs::read_to_string(&sha_file).map_err(|e| e.to_string())?;
+    let _ = fs::remove_file(&sha_file);
+    let expected = content.split_whitespace().next().unwrap_or("");
+    if expected.len() != 64 || !expected.bytes().all(|b| b.is_ascii_hexdigit()) {
+        return Err("Malformed release .sha256 checksum".into());
+    }
+    let out = Command::new("sha256sum")
+        .arg(archive)
+        .output()
+        .or_else(|_| Command::new("shasum").args(["-a", "256"]).arg(archive).output())
+        .map_err(|e| format!("SHA-256 verification tool unavailable: {}", e))?;
+    if !out.status.success() {
+        return Err("SHA-256 computation failed".into());
+    }
+    let actual = String::from_utf8_lossy(&out.stdout)
+        .split_whitespace()
+        .next()
+        .unwrap_or("")
+        .to_string();
+    if !actual.eq_ignore_ascii_case(expected) {
+        return Err(format!("SHA-256 mismatch ({} != {})", actual, expected));
+    }
+    Ok(())
 }
 
 fn detect_target() -> Option<&'static str> {
@@ -112,6 +137,10 @@ pub fn run_update(
 
         if let Ok(st) = dl {
             if st.success() && tmp_tar.is_file() {
+                verify_sha256(&tmp_tar, &format!("{}.sha256", asset_url)).map_err(|e| {
+                    let _ = fs::remove_file(&tmp_tar);
+                    e
+                })?;
                 let untar = Command::new("tar")
                     .args([
                         "-xzf",
@@ -131,16 +160,10 @@ pub fn run_update(
     }
 
     if !upgraded {
-        let script = format!(
-            "curl -fsSL https://studio2201.com/install.sh | sh -s -- {}",
+        return Err(format!(
+            "Failed to upgrade {}: prebuilt release unavailable or unsupported platform",
             app
-        );
-        let inst = Command::new("sh").args(["-c", &script]).status();
-        if let Ok(st) = inst {
-            if st.success() {
-                upgraded = true;
-            }
-        }
+        ));
     }
 
     #[cfg(unix)]

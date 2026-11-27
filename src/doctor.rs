@@ -21,7 +21,7 @@ fn check_binary() -> DoctorCheck {
             name: "binary_integrity".into(),
             status: "error".into(),
             detail: format!("Binary not found at {}", exe.display()),
-            remediation: Some("Reinstall vigil via install.sh".into()),
+            remediation: Some("Reinstall vigil from GitHub Releases or cargo install --git https://github.com/studio2201/vigil".into()),
         };
     }
     let size = fs::metadata(&exe).map(|m| m.len()).unwrap_or(0);

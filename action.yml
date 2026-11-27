@@ -22,27 +22,45 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    - name: Fast Bootstrap vigil
+    - name: Bootstrap vigil (pinned v0.2.11 + SHA-256)
       shell: bash
       run: |
         DEST="${XDG_BIN_HOME:-$HOME/.local/bin}"
         mkdir -p "$DEST"
         if ! command -v vigil >/dev/null 2>&1; then
-          if [ -f "${{ github.action_path }}/../install.sh" ]; then
-            sh "${{ github.action_path }}/../install.sh" --dest "$DEST" vigil
-          elif [ -f "${{ github.action_path }}/install.sh" ]; then
-            sh "${{ github.action_path }}/install.sh" --dest "$DEST" vigil
+          TMP=$(mktemp -d)
+          trap 'rm -rf "$TMP"' EXIT
+          case "$(uname -s)-$(uname -m)" in
+            Linux-x86_64) TARGET="x86_64-unknown-linux-musl" ;;
+            Linux-aarch64|Linux-arm64) TARGET="aarch64-unknown-linux-musl" ;;
+            Darwin-x86_64) TARGET="x86_64-apple-darwin" ;;
+            Darwin-arm64|Darwin-aarch64) TARGET="aarch64-apple-darwin" ;;
+            *) echo "::error::Unsupported platform $(uname -s)-$(uname -m)"; exit 1 ;;
+          esac
+          ASSET="vigil-${TARGET}.tar.gz"
+          URL="https://github.com/studio2201/vigil/releases/download/v0.2.11/${ASSET}"
+          curl -fsSL --retry 3 "$URL" -o "$TMP/$ASSET"
+          curl -fsSL --retry 3 "${URL}.sha256" -o "$TMP/${ASSET}.sha256"
+          EXPECTED=$(awk '{print $1}' "$TMP/${ASSET}.sha256")
+          [[ "$EXPECTED" =~ ^[0-9a-fA-F]{64}$ ]] || { echo "::error::Invalid SHA-256 for $ASSET"; exit 1; }
+          if command -v sha256sum >/dev/null 2>&1; then
+            (cd "$TMP" && printf '%s  %s\n' "$EXPECTED" "$ASSET" | sha256sum --strict --check -)
           else
-            curl -fsSL --retry 3 https://studio2201.com/install.sh | sh -s -- --dest "$DEST" vigil
+            (cd "$TMP" && printf '%s  %s\n' "$EXPECTED" "$ASSET" | shasum -a 256 --check -)
           fi
+          tar -xzf "$TMP/$ASSET" -C "$DEST" vigil && chmod 755 "$DEST/vigil"
         fi
         echo "$DEST" >> "$GITHUB_PATH"
 
     - name: Run Vigil Scan
       shell: bash
+      env:
+        INPUT_PATH: ${{ inputs.path }}
+        INPUT_MAX_DORMANCY: ${{ inputs.max-dormancy }}
+        INPUT_FORMAT: ${{ inputs.format }}
       run: |
         export PATH="${XDG_BIN_HOME:-$HOME/.local/bin}:$PATH"
-        TARGET="${{ inputs.path }}"
+        TARGET="$INPUT_PATH"
         MANIFEST="$TARGET"
         if [ -d "$TARGET" ]; then
           MANIFEST=$(find "$TARGET" -maxdepth 3 \( -name "Cargo.lock" -o -name "package.json" -o -name "requirements.txt" -o -name "go.mod" -o -name "Cargo.toml" \) 2>/dev/null | head -n 1)
@@ -50,9 +68,9 @@ runs:
 
         set +e
         if [ -n "$MANIFEST" ] && [ -f "$MANIFEST" ]; then
-          vigil scan "$MANIFEST" --format "${{ inputs.format }}" > vigil_summary.md 2>&1
+          vigil scan "$MANIFEST" --format "$INPUT_FORMAT" > vigil_summary.md 2>&1
           EC=$?
-          vigil policy check --max-dormancy "${{ inputs.max-dormancy }}" "$MANIFEST" >/dev/null 2>&1
+          vigil policy check --max-dormancy "$INPUT_MAX_DORMANCY" "$MANIFEST" >/dev/null 2>&1
           PEC=$?
           [ $PEC -ne 0 ] && EC=$PEC
         else
@@ -68,13 +86,13 @@ runs:
           BADGE="https://img.shields.io/badge/Vigil-DORMANT-red"
         fi
 
-        if [ -n "$GITHUB_STEP_SUMMARY" ]; then
+        if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
           {
             echo "## 👁️ Vigil Supply-Chain Dormancy Audit"
             echo ""
             echo "| Status | Max Dormancy | Badge |"
             echo "| :---: | :---: | :---: |"
-            echo "| **${STATUS}** | \`${{ inputs.max-dormancy }} days\` | ![Vigil](${BADGE}) |"
+            echo "| **${STATUS}** | \`${INPUT_MAX_DORMANCY} days\` | ![Vigil](${BADGE}) |"
             echo ""
           } >> "$GITHUB_STEP_SUMMARY"
           cat vigil_summary.md >> "$GITHUB_STEP_SUMMARY"
